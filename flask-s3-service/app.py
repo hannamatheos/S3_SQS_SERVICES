@@ -16,7 +16,7 @@ AWS_REGION = os.environ["AWS_REGION"]
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 s3_client = boto3.client("s3", region_name=AWS_REGION)
 
-# Simple HTML form for file upload
+# Simple HTML form for file upload test
 UPLOAD_FORM = """
 <!DOCTYPE html>
 <html>
