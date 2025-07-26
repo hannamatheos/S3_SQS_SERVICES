@@ -11,9 +11,7 @@ jobs:
   pre-deploy:
     runs-on: ubuntu-latest
     steps:
-      - run:
-        shell: bash
-        working-directory: ./flask-s3-service
+      - run: echo "This job is automatically triggered by \"a ${{ github.event_name }} event.\""
 
   install-dependencies:
     runs-on: ubuntu-latest
