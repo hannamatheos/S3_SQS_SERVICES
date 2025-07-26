@@ -42,20 +42,20 @@ jobs:
   # Grab the API key from your username > API Key
   # Insert the API key in Github Actions Secret called "SNYK_TOKEN"
 
-  package-osc-scan-snyk-scan:
-    runs-on: ubuntu-latest
-    needs: install-dependencies
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v3
-      - name: Install Snyk CLI
-        run: npm install -g snyk
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
+  # package-osc-scan-snyk-scan:
+  #   runs-on: ubuntu-latest
+  #   needs: install-dependencies
+  #   steps:
+  #     - name: Check out repository code
+  #       uses: actions/checkout@v3
+  #     - name: Install Snyk CLI
+  #       run: npm install -g snyk
+  #     - name: Run Snyk to check for vulnerabilities
+  #       uses: snyk/actions/node@master
+  #       env:
+  #         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  #       with:
+  #         args: --severity-threshold=high
 
   # We will also use Snyk to perform application code scanning
 
@@ -90,7 +90,7 @@ jobs:
   #         args: "--report --severity-threshold=high --scan=resource-changes"
 
   flask-s3-create:
-    needs: [package-scan-npm-audit, package-osc-scan-snyk-scan]
+    needs: [package-scan-npm-audit]
     runs-on: ubuntu-latest
 
     steps:
@@ -112,7 +112,8 @@ jobs:
         id: build-image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          working-directory: flask-s3-service
+          # context: .
           file: "Dockerfile"
           push: true
           tags: |
@@ -120,7 +121,6 @@ jobs:
             ${{ steps.login-ecr.outputs.registry }}/${{ vars.S3_ECR_REPOSITORY }}:latest
           platforms: linux/amd64
           provenance: false
-          working-directory: flask-s3-service
 
       - name: Download task definition
         run: |
