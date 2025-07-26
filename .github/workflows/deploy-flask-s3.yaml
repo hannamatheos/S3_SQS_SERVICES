@@ -112,15 +112,15 @@ jobs:
         id: build-image
         uses: docker/build-push-action@v6
         with:
-          context: ./flask-s3-service
-          file: "flask-s3-service/Dockerfile"
+          context: .
+          file: "Dockerfile"
           push: true
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ vars.S3_ECR_REPOSITORY }}:${{ github.sha }}
             ${{ steps.login-ecr.outputs.registry }}/${{ vars.S3_ECR_REPOSITORY }}:latest
           platforms: linux/amd64
           provenance: false
-          working-directory: ${{ github.workspace }}
+          working-directory: flask-s3-service
 
       - name: Download task definition
         run: |
