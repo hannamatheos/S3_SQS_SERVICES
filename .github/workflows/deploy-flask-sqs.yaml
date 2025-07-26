@@ -1,0 +1,146 @@
+name: Deploy Flask SQS App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "flask-sqs-service/**"
+
+jobs:
+  pre-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This job is automaticaly triggered by "a ${{ github.event_name }} event."
+
+  install-dependencies:
+    runs-on: ubuntu-latest
+    needs: [pre-deploy]
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Run installation of dependencies commands
+        run: npm install
+  # Perform first level package scanning using npm audit.
+  # npm audit information can be found here:
+  # https://docs.npmjs.com/cli/v9/commands/npm-audit
+
+  package-scan-npm-audit:
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Run installation of dependencies commands
+        run: npm install
+      - name: Run audit
+        run: npm audit
+
+  # We will use Snyk to perform open source code scanning of our JavaScript files
+  # Ensure that you have registered for a Snyk account
+  # Grab the API key from your username > API Key
+  # Insert the API key in Github Actions Secret called "SNYK_TOKEN"
+
+  package-osc-scan-snyk-scan:
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  # We will also use Snyk to perform application code scanning
+
+  package-app-scan-snyk-scan:
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+      - name: Run Snyk Code Scan And Check Snyk Scan Results
+        run: snyk code test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # We will also use Snyk to perform code scanning of our Terraform IAC files
+
+  package-iac-scan-snyk-scan:
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+      - name: Run Snyk Code Scan And Check Snyk Scan Results
+        uses: snyk/actions/iac@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: "--report --severity-threshold=high --scan=resource-changes"
+
+  flask-sqs-create:
+    needs:
+      [
+        package-scan-npm-audit,
+        package-osc-scan-snyk-scan,
+        package-app-scan-snyk-scan,
+        package-iac-scan-snyk-scan,
+      ]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push Docker image to Amazon ECR
+        id: build-image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./flask-sqs-service
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ vars.SQS_ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ vars.SQS_ECR_REPOSITORY }}:latest
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ vars.SQS_TASK_DEF }} --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ vars.SQS_CONTAINER_NAME }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ vars.SQS_ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ vars.SQS_ECS_SERVICE }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          wait-for-service-stability: true
