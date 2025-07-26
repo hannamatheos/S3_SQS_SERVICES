@@ -1,2 +1,1 @@
 echo "This is a test change." > flask-sqs-service/test.txt
-echo "This is a test change." > flask-sqs-service/test.txt

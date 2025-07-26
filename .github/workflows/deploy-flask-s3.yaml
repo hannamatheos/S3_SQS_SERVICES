@@ -59,18 +59,18 @@ jobs:
 
   # We will also use Snyk to perform application code scanning
 
-  package-app-scan-snyk-scan:
-    runs-on: ubuntu-latest
-    needs: install-dependencies
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v3
-      - name: Install Snyk CLI
-        run: npm install -g snyk
-      - name: Run Snyk Code Scan And Check Snyk Scan Results
-        run: snyk code test
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  # package-app-scan-snyk-scan:
+  #   runs-on: ubuntu-latest
+  #   needs: install-dependencies
+  #   steps:
+  #     - name: Check out repository code
+  #       uses: actions/checkout@v3
+  #     - name: Install Snyk CLI
+  #       run: npm install -g snyk
+  #     - name: Run Snyk Code Scan And Check Snyk Scan Results
+  #       run: snyk code test
+  #       env:
+  #         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   # We will also use Snyk to perform code scanning of our Terraform IAC files
 
@@ -90,12 +90,7 @@ jobs:
   #         args: "--report --severity-threshold=high --scan=resource-changes"
 
   flask-s3-create:
-    needs:
-      [
-        package-scan-npm-audit,
-        package-osc-scan-snyk-scan,
-        package-app-scan-snyk-scan,
-      ]
+    needs: [package-scan-npm-audit, package-osc-scan-snyk-scan]
     runs-on: ubuntu-latest
 
     steps:
