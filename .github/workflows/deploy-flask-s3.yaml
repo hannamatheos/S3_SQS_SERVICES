@@ -114,7 +114,7 @@ jobs:
         with:
           working-directory: flask-s3-service
           # context: .
-          file: "Dockerfile"
+          # file: "Dockerfile"
           push: true
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ vars.S3_ECR_REPOSITORY }}:${{ github.sha }}
