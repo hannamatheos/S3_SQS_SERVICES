@@ -7,7 +7,7 @@ WORKDIR /app
 # Step 1: Copy ONLY requirements.txt first
 # This allows Docker to cache this layer. If only app code changes,
 # pip install won't re-run.
-COPY requirements.txt
+COPY requirements.txt /app
 
 # Step 2: Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
