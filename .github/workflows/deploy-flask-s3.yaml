@@ -112,7 +112,7 @@ jobs:
         id: build-image
         uses: docker/build-push-action@v6
         with:
-          context: ./flask-s3-service
+          context: "./flask-s3-service"
           push: true
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ vars.S3_ECR_REPOSITORY }}:${{ github.sha }}
