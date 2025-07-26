@@ -2,17 +2,18 @@
 
 FROM python:latest
 
-WORKDIR /app
+# WORKDIR is already /app
 
-# The build context is 'flask-s3-service'.
-# So, 'requirements.txt' should be copied from that directory
-# directly into the WORKDIR (/app) of the container.
-# <-- Change /app to . (period)
-COPY requirements.txt .
+# Try copying with an explicit source path relative to the build context's root (flask-s3-service)
+# This is usually equivalent to 'COPY requirements.txt .' but might resolve an edge case.
+# IMPORTANT: ONLY try this if 'COPY requirements.txt .' fails again.
+# The source path for COPY is relative to the build context, which is 'flask-s3-service/'
+# So, 'requirements.txt' should be accessible directly.
+COPY ./requirements.txt /app/requirements.txt # Try being fully explicit
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt # Ensure pip reads from the explicit path
 
-COPY . . # This copies app.py and any other files from flask-s3-service into /app
+COPY . .
 
 EXPOSE 5001
 
